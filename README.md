@@ -44,18 +44,22 @@ Three things make it distinctive:
 
 ### The app
 
-| Ingest &amp; ask | Live progress | Study pack results |
-| --- | --- | --- |
-| <img src="docs/images/ui-1.png" width="300"/> | <img src="docs/images/ui-2.png" width="300"/> | <img src="docs/images/ui-3.png" width="300"/> |
+Ingest a lecture, ask in plain English, watch it work, and get a full study pack.
+
+<img src="docs/images/ui-1.png" width="800"/>
+
+<img src="docs/images/ui-2.png" width="800"/>
+
+<img src="docs/images/ui-3.png" width="800"/>
 
 ### Telegram delivery
 
 The full study pack — summary, video links, flashcards and cue cards — delivered straight to Telegram.
 
 <p align="left">
-  <img src="docs/images/telegram-1.png" width="230"/>
-  <img src="docs/images/telegram-2.png" width="230"/>
-  <img src="docs/images/telegram-3.png" width="230"/>
+  <img src="docs/images/telegram-1.jpeg" width="240"/>
+  <img src="docs/images/telegram-2.jpeg" width="240"/>
+  <img src="docs/images/telegram-3.jpeg" width="240"/>
 </p>
 
 ---
