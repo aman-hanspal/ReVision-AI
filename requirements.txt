@@ -1,0 +1,9 @@
+videodb
+fastapi
+uvicorn[standard]
+pydantic>=2
+python-dotenv
+requests
+# agent LLM (install the one you use)
+openai
+# anthropic
