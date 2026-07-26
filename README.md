@@ -308,7 +308,7 @@ The chat routes intent to tools automatically. Some examples:
 | `Where is the output layer explained?` | Timestamped moments |
 | `Make an animated explainer video on how digits are recognized` | AI Explainer (images + narration + captions) |
 | `Flashcards and cue cards on activations` | Cards |
-| `Full study pack on neural networks with an animated video` | Everything |
+| `Full study pack on neural networks with an animated video and send it to my Telegram` | Everything |
 | `Give me a summary reel on backprop and send it to my Telegram` | Highlights + Telegram delivery |
 
 _You can also describe the visual style you want for the explainer video, and it will follow it — for example: "an animated 3D-cartoon video" or "a whiteboard-style explainer."_
