@@ -16,7 +16,7 @@ import json
 import logging
 from typing import Any, Dict, Tuple
 
-from shared import retrieval, generate
+from shared import retrieval, generate, telegram_service
 from shared.progress import emit
 from shared import videodb_service as vdb
 
@@ -93,6 +93,14 @@ def _make_study_pack(video_id: str, topic: str, include_video: bool = False,
 # ---------------------------------------------------------------------------
 # Registry: name -> impl
 # ---------------------------------------------------------------------------
+
+def _send_to_telegram(displays=None, **_) -> Tuple[str, Dict]:
+    """Send the study-pack results produced so far in THIS run to Telegram.
+    The agent loop injects `displays` (everything generated earlier this turn)."""
+    ok, message = telegram_service.send_study_pack(displays or [])
+    return (message, {"kind": "telegram", "ok": ok, "message": message})
+
+
 _REGISTRY = {
     "ingest_lecture": _ingest_lecture,
     "search_topic": _search_topic,
@@ -100,6 +108,7 @@ _REGISTRY = {
     "make_summary_reel": _make_summary_reel,
     "make_learning_video": _make_learning_video,
     "make_study_pack": _make_study_pack,
+    "send_to_telegram": _send_to_telegram,
 }
 
 
@@ -164,4 +173,9 @@ TOOL_SCHEMAS = [
          "include_video": {"type": "boolean"},
          "style": {"type": "string", "description": "style if include_video"}},
         ["video_id", "topic"]),
+    _fn("send_to_telegram",
+        "Send the results just produced (clips, reel, video, flashcards, cue cards) "
+        "to the user's Telegram. Call this when the user asks to send/share to Telegram, "
+        "AFTER producing the content.",
+        {}, []),
 ]

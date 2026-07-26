@@ -87,6 +87,9 @@ def run_agent(user_message: str, video_id: str = "",
             # inject the current video_id if the model omitted it
             if "video_id" in _tool_params(c.function.name) and not args.get("video_id") and video_id:
                 args["video_id"] = video_id
+            # the telegram tool needs the results produced so far this run
+            if c.function.name == "send_to_telegram":
+                args["displays"] = displays
             print(f"  \033[96m→ {c.function.name}({_short(args)})\033[0m")
             result_text, display = toolmod.execute_tool(c.function.name, args)
             if display:

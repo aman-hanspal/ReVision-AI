@@ -1,6 +1,5 @@
-import React from "react";
-import { useState } from "react";
-import { ingest } from "../lib/api";
+import React, { useRef, useState } from "react";
+import { ingest, uploadFile } from "../lib/api";
 
 export default function IngestPanel({
   videoId, setVideoId,
@@ -8,36 +7,56 @@ export default function IngestPanel({
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
+  const [drag, setDrag] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  async function doIngest(link: string) {
+  async function ingestUrl(link: string) {
     if (!link.trim()) return;
-    setBusy(true); setStatus("Indexing… this can take a minute");
+    setBusy(true); setStatus("Indexing link… this can take a minute");
     try {
       const r = await ingest(link.trim());
       setVideoId(r.video_id);
       setStatus(`Indexed · ${r.title || "lecture"} · ${Math.round(r.length)}s`);
-    } catch (e: any) {
-      setStatus(`Failed: ${e.message}`);
-    } finally { setBusy(false); }
+    } catch (e: any) { setStatus(`Failed: ${e.message}`); }
+    finally { setBusy(false); }
+  }
+
+  async function ingestFile(file: File) {
+    setBusy(true); setStatus(`Uploading ${file.name}… indexing can take a few minutes`);
+    try {
+      const r = await uploadFile(file);
+      setVideoId(r.video_id);
+      setStatus(`Indexed · ${r.title || file.name} · ${Math.round(r.length)}s`);
+    } catch (e: any) { setStatus(`Failed: ${e.message}`); }
+    finally { setBusy(false); }
   }
 
   return (
     <div className="card">
       <div className="card-title">Lecture</div>
 
-      <div className="dropzone"
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={(e) => { e.preventDefault(); /* file upload = future; hint only */
-          setStatus("File drop coming soon — paste a YouTube link below"); }}>
+      <div
+        className={"dropzone" + (drag ? " drag" : "")}
+        onClick={() => fileRef.current?.click()}
+        onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+        onDragLeave={() => setDrag(false)}
+        onDrop={(e) => {
+          e.preventDefault(); setDrag(false);
+          const f = e.dataTransfer.files?.[0];
+          if (f) ingestFile(f);
+        }}
+      >
         <span className="drop-ico">⤓</span>
-        <span>Click to upload or drop a video</span>
+        <span>{busy ? "Working…" : "Click to upload or drop a video"}</span>
+        <input ref={fileRef} type="file" accept="video/*" hidden
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) ingestFile(f); }} />
       </div>
 
       <div className="ingest-row">
         <input placeholder="…or paste a YouTube link" value={url}
           onChange={(e) => setUrl(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && doIngest(url)} />
-        <button onClick={() => doIngest(url)} disabled={busy}>
+          onKeyDown={(e) => e.key === "Enter" && ingestUrl(url)} />
+        <button onClick={() => ingestUrl(url)} disabled={busy}>
           {busy ? "…" : "Index"}
         </button>
       </div>

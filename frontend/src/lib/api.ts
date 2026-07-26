@@ -15,6 +15,17 @@ export async function ingest(url: string): Promise<{ video_id: string; title: st
  * (progress / result / error / done). Uses fetch + a stream reader
  * so we can POST a body (EventSource can't POST).
  */
+
+export async function uploadFile(
+  file: File
+): Promise<{ video_id: string; title: string; length: number }> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch("/upload/file", { method: "POST", body: form });
+  if (!res.ok) throw new Error(`file upload failed: ${res.status}`);
+  return res.json();
+}
+
 export async function chatStream(
   message: string,
   videoId: string,

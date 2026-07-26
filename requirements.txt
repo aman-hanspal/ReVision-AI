@@ -7,3 +7,4 @@ requests
 # agent LLM (install the one you use)
 openai
 # anthropic
+python-multipart

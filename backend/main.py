@@ -20,7 +20,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from shared import videodb_service as vdb
-from backend.routes import chat, upload
+from backend.routes import chat, upload, telegram
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s  %(name)s  %(message)s", datefmt="%H:%M:%S")
@@ -52,3 +52,4 @@ def _safe_model():
 
 app.include_router(upload.router)
 app.include_router(chat.router)
+app.include_router(telegram.router)
