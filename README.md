@@ -46,11 +46,11 @@ Three things make it distinctive:
 
 Ingest a lecture, ask in plain English, watch it work, and get a full study pack.
 
-<img src="docs/images/ui-1.png" width="800" style="border:1px solid #3a3f4b; border-radius:8px; margin:8px 0;"/>
+<img src="docs/images/ui-1.jpeg" width="800" style="border:1px solid #3a3f4b; border-radius:8px; margin:8px 0;"/>
 
-<img src="docs/images/ui-2.png" width="800" style="border:1px solid #3a3f4b; border-radius:8px; margin:8px 0;"/>
+<img src="docs/images/ui-2.jpeg" width="800" style="border:1px solid #3a3f4b; border-radius:8px; margin:8px 0;"/>
 
-<img src="docs/images/ui-3.png" width="800" style="border:1px solid #3a3f4b; border-radius:8px; margin:8px 0;"/>
+<img src="docs/images/ui-3.jpeg" width="800" style="border:1px solid #3a3f4b; border-radius:8px; margin:8px 0;"/>
 
 ### Telegram delivery
 
