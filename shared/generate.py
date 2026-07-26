@@ -297,6 +297,20 @@ def build_study_pack(video_id: str, topic: str,
         cue_cards = make_cue_cards(topic, n_cue, context=ctx, sandbox=sb)
         pack = StudyPack(topic=topic, video=ref, clip=clip, summary_reel=reel,
                          summary=summary, flashcards=flashcards, cue_cards=cue_cards)
+
+        # dedicated concept image for the flashcard header (its own generation,
+        # distinct from the AI explainer's slides)
+        emit("Illustrating the topic…")
+        try:
+            concept_prompt = (
+                f"A clean, modern, minimal educational illustration representing "
+                f"the concept of '{topic}'. Flat vector style, uncluttered, no text "
+                f"or labels, suitable as a topic banner.")
+            _img_id, concept_url = vdb.generate_image(concept_prompt, sandbox=sb)
+            pack.concept_image_url = concept_url
+        except Exception as e:
+            emit(f"Concept image skipped: {e}", kind="warning")
+
         if with_video:
             emit(f"Planning a {n_slides}-slide learning video…")
             storyboard = plan_storyboard(topic, style=video_style, n_slides=n_slides)
@@ -305,8 +319,6 @@ def build_study_pack(video_id: str, topic: str,
                 url, slides = make_learning_video(storyboard, sandbox=sb)
                 pack.learning_video_url = url
                 pack.slides = slides
-                if slides and slides[0].image_url:
-                    pack.concept_image_url = slides[0].image_url
             except Exception as e:
                 emit(f"Learning video skipped: {e}", kind="warning")
     emit("Study pack complete ✓", kind="done")
