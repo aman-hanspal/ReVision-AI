@@ -13,3 +13,4 @@ tests/videos_test/*.mp4
 *.mp4
 *.mov
 *.webm
+docs/*.md

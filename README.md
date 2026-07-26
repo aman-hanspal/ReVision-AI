@@ -40,13 +40,23 @@ Three things make it distinctive:
 
 ## 2. Demo
 
-> _Add your demo video link and screenshots here._
+**Demo video:** [Watch the demo](https://drive.google.com/file/d/1o6sipIScJKFJ6rTXLmSf0b-EBMGHguEn/view?usp=sharing)
 
-| ReVision AI — study pack UI | Telegram delivery |
-| --- | --- |
-| ![UI screenshot](docs/images/ui.png) | ![Telegram screenshot](docs/images/telegram.png) |
+### The app
 
-**Demo video:** _[link]_
+| Ingest &amp; ask | Live progress | Study pack results |
+| --- | --- | --- |
+| <img src="docs/images/ui-1.png" width="300"/> | <img src="docs/images/ui-2.png" width="300"/> | <img src="docs/images/ui-3.png" width="300"/> |
+
+### Telegram delivery
+
+The full study pack — summary, video links, flashcards and cue cards — delivered straight to Telegram.
+
+<p align="left">
+  <img src="docs/images/telegram-1.png" width="230"/>
+  <img src="docs/images/telegram-2.png" width="230"/>
+  <img src="docs/images/telegram-3.png" width="230"/>
+</p>
 
 ---
 
@@ -308,7 +318,7 @@ The chat routes intent to tools automatically. Some examples:
 | `Where is the output layer explained?` | Timestamped moments |
 | `Make an animated explainer video on how digits are recognized` | AI Explainer (images + narration + captions) |
 | `Flashcards and cue cards on activations` | Cards |
-| `Full study pack on neural networks with an animated video and send it to my Telegram` | Everything |
+| `Full study pack on neural networks with an animated video` | Everything |
 | `Give me a summary reel on backprop and send it to my Telegram` | Highlights + Telegram delivery |
 
 _You can also describe the visual style you want for the explainer video, and it will follow it — for example: "an animated 3D-cartoon video" or "a whiteboard-style explainer."_
