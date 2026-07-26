@@ -46,20 +46,20 @@ Three things make it distinctive:
 
 Ingest a lecture, ask in plain English, watch it work, and get a full study pack.
 
-<img src="docs/images/ui-1.png" width="800"/>
+<img src="docs/images/ui-1.png" width="800" style="border:1px solid #3a3f4b; border-radius:8px; margin:8px 0;"/>
 
-<img src="docs/images/ui-2.png" width="800"/>
+<img src="docs/images/ui-2.png" width="800" style="border:1px solid #3a3f4b; border-radius:8px; margin:8px 0;"/>
 
-<img src="docs/images/ui-3.png" width="800"/>
+<img src="docs/images/ui-3.png" width="800" style="border:1px solid #3a3f4b; border-radius:8px; margin:8px 0;"/>
 
 ### Telegram delivery
 
 The full study pack — summary, video links, flashcards and cue cards — delivered straight to Telegram.
 
 <p align="left">
-  <img src="docs/images/telegram-1.jpeg" width="240"/>
-  <img src="docs/images/telegram-2.jpeg" width="240"/>
-  <img src="docs/images/telegram-3.jpeg" width="240"/>
+  <img src="docs/images/telegram-1.jpeg" width="240" style="border:1px solid #3a3f4b; border-radius:8px; margin:4px;"/>
+  <img src="docs/images/telegram-2.jpeg" width="240" style="border:1px solid #3a3f4b; border-radius:8px; margin:4px;"/>
+  <img src="docs/images/telegram-3.jpeg" width="240" style="border:1px solid #3a3f4b; border-radius:8px; margin:4px;"/>
 </p>
 
 ---
