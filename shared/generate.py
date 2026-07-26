@@ -247,10 +247,12 @@ def make_summary_reel(video_id: str, topic: str, n_points: int = 4) -> Optional[
     ranges = []
     from shared.progress import emit
     emit(f"Reel: locating {len(subpoints)} key moments…")
-    for p in subpoints:
+    for idx, p in enumerate(subpoints, 1):
+        emit(f"Reel: finding moment {idx}/{len(subpoints)} — '{p}'…")
         ms = find_precise_moments(video_id, p)
         if ms:
             ranges.append(min(ms, key=lambda r: r[1] - r[0]))  # tightest per point
+    emit("Reel: stitching moments into one clip…")
     ranges = _merge_ranges(ranges)
     if not ranges:
         return None
