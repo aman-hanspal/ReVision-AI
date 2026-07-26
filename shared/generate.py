@@ -75,90 +75,6 @@ def _topic_context(topic: str) -> str:
 # image prompt + one narration sentence per slide, grounded in the lecture and
 # styled to the user's request. Replaces the old hardcoded 1-slide stub.
 # ---------------------------------------------------------------------------
-_STORYBOARD_SYSTEM = (
-    "You are a lecture-to-video storyboard writer for a study tool. "
-    "You turn lecture material into a short explainer video, slide by slide. "
-    "Return ONLY a JSON array — no prose, no markdown fences."
-)
-
-
-def _parse_storyboard_json(raw: str) -> List[dict]:
-    """Parse the model's JSON array defensively (strip fences, find the array)."""
-    import json
-    text = raw.strip()
-    # strip ```json ... ``` fences if present
-    if text.startswith("```"):
-        text = re.sub(r"^```[a-zA-Z]*\n?|\n?```$", "", text).strip()
-    # if there's stray prose, grab the outermost [ ... ]
-    if not text.startswith("["):
-        m = re.search(r"\[.*\]", text, re.DOTALL)
-        if m:
-            text = m.group(0)
-    try:
-        data = json.loads(text)
-        return data if isinstance(data, list) else []
-    except Exception as e:
-        logger.warning("storyboard JSON parse failed: %s; head: %s", e, raw[:200])
-        return []
-
-
-def plan_storyboard(topic: str, style: str = "clean educational",
-                    n_slides: int = 5) -> List[Slide]:
-    """Ask GPT-4o (via proxy) to write a grounded, styled, multi-slide storyboard.
-
-    Each slide gets a SPECIFIC image_prompt (concept depicted concretely, in the
-    requested style) and a one-sentence narration grounded in the lecture. Falls
-    back to a single summary slide if planning fails, so the video path never breaks.
-    """
-    # grounded lecture material for this topic (so the video is accurate)
-    material = _topic_context(topic)
-
-    user_prompt = (
-        f"TOPIC: {topic}\n"
-        f"VISUAL STYLE: {style}\n"
-        f"SLIDES: {n_slides}\n\n"
-        f"Using ONLY the lecture material below, write a {n_slides}-slide explainer "
-        f"storyboard that teaches this topic from intro -> mechanism -> takeaway.\n"
-        f"For EACH slide return an object with:\n"
-        f'  "image_prompt": a SPECIFIC, detailed prompt for an image generator, in '
-        f'the "{style}" style, depicting the concept CONCRETELY (real diagram/scene, '
-        f"labeled where useful) — never generic or decorative.\n"
-        f'  "narration": ONE clear sentence (~15-22 words), grounded in the material.\n\n'
-        f"Return ONLY a JSON array of {n_slides} such objects.\n\n"
-        f"LECTURE MATERIAL:\n{material}"
-    )
-
-    try:
-        client = vdb.agent_client()
-        resp = client.chat.completions.create(
-            model=config.AGENT_MODEL,
-            messages=[
-                {"role": "system", "content": _STORYBOARD_SYSTEM},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=0.5,
-            max_tokens=config.AGENT_MAX_TOKENS,
-        )
-        raw = resp.choices[0].message.content or ""
-        rows = _parse_storyboard_json(raw)
-        slides = [
-            Slide(image_prompt=str(r.get("image_prompt", "")).strip(),
-                  narration=str(r.get("narration", "")).strip())
-            for r in rows
-            if r.get("image_prompt") and r.get("narration")
-        ]
-        if slides:
-            logger.info("storyboard planned: %d slides (style=%s)", len(slides), style)
-            return slides[:n_slides]
-        logger.warning("storyboard empty after parse; falling back to 1 slide")
-    except Exception as e:
-        logger.warning("plan_storyboard failed (%s); falling back to 1 slide", e)
-
-    # fallback: a single grounded slide so the video still renders
-    return [Slide(
-        image_prompt=f"A clear, specific labeled diagram of {topic}, {style} style",
-        narration=(material[:200] or f"An overview of {topic}."),
-    )]
 
 
 # ---------------------------------------------------------------------------
@@ -329,6 +245,8 @@ def make_summary_reel(video_id: str, topic: str, n_points: int = 4) -> Optional[
     video = vdb.get_video(video_id)
     vlen = float(getattr(video, "length", 0) or 0)
     ranges = []
+    from shared.progress import emit
+    emit(f"Reel: locating {len(subpoints)} key moments…")
     for p in subpoints:
         ms = find_precise_moments(video_id, p)
         if ms:
@@ -354,34 +272,42 @@ def build_study_pack(video_id: str, topic: str,
                      video_style: str = "clean educational",
                      n_slides: int = 5) -> StudyPack:
     """Assemble clip + grounded summary + flashcards + cue cards for a topic."""
+    from shared.progress import emit
     video = vdb.get_video(video_id)
     ref = VideoRef(video_id=video_id,
                    title=getattr(video, "name", "") or "",
                    length=float(getattr(video, "length", 0) or 0))
 
-    summary = make_summary(topic)          # ask(): no sandbox needed
-    ctx = summary.text                     # reuse summary as card context (1 fewer ask())
-    clip = make_precise_clip(video_id, topic)     # single tight "jump to this moment" clip
-    reel = make_summary_reel(video_id, topic)     # CLIPPING feature: stitched highlight reel
+    emit(f"Building study pack for '{topic}'")
+    emit("Writing grounded summary…")
+    summary = make_summary(topic)
+    ctx = summary.text
+    emit("Finding the best clip…")
+    clip = make_precise_clip(video_id, topic)
+    emit("Building the summary reel (this stitches several moments)…")
+    reel = make_summary_reel(video_id, topic)
 
-    # ONE sandbox session for all generation (cards now; images/tts too if video)
-    logger.info("opening generation session for study pack")
+    emit("Opening a generation sandbox…")
     with vdb.open_session() as sb:
+        emit("Writing flashcards…")
         flashcards = make_flashcards(topic, n_flash, context=ctx, sandbox=sb)
+        emit("Writing cue cards…")
         cue_cards = make_cue_cards(topic, n_cue, context=ctx, sandbox=sb)
         pack = StudyPack(topic=topic, video=ref, clip=clip, summary_reel=reel,
                          summary=summary, flashcards=flashcards, cue_cards=cue_cards)
         if with_video:
+            emit(f"Planning a {n_slides}-slide learning video…")
             storyboard = plan_storyboard(topic, style=video_style, n_slides=n_slides)
-            logger.info("storyboard planned: %d slides", len(storyboard))
+            emit(f"Storyboard ready: {len(storyboard)} slides")
             try:
                 url, slides = make_learning_video(storyboard, sandbox=sb)
                 pack.learning_video_url = url
                 pack.slides = slides
                 if slides and slides[0].image_url:
-                    pack.concept_image_url = slides[0].image_url  # Option B header image
+                    pack.concept_image_url = slides[0].image_url
             except Exception as e:
-                logger.warning("learning video skipped: %s", e)
+                emit(f"Learning video skipped: {e}", kind="warning")
+    emit("Study pack complete ✓", kind="done")
     return pack
 
 
@@ -470,47 +396,120 @@ def plan_storyboard(topic: str, style: str = "clean flat-vector educational",
 
 
 
-def make_learning_video(storyboard: List[Slide], sandbox=None) -> Tuple[str, List[Slide]]:
+def _add_auto_captions(conn, clean_stream_url: str,
+                       animation: str = "reveal",
+                       primary_color: str = "&H00FFFFFF",     # white
+                       secondary_color: str = "&H0000FFFF"    # yellow highlight
+                       ) -> str:
+    """Second pass: take a rendered (clean) learning video, upload it back, index its
+    spoken words, and overlay VideoDB's auto-generated CaptionAsset subtitles.
+
+    CaptionAsset(src="auto") is the PROPER subtitle tool: it transcribes the narration
+    and renders clean, auto-synced captions (word-level). It REQUIRES an indexed video
+    (index_spoken_words), which is why we re-upload the rendered stream first.
+    Returns the captioned stream URL (or the original if anything fails).
+    """
+    try:
+        coll = conn.get_collection()
+        from shared.progress import emit
+        emit("Captions: uploading rendered video…")
+        video = coll.upload(url=clean_stream_url)
+        emit("Captions: transcribing narration…")
+        video.index_spoken_words()
+        # re-fetch the video so its spoken-words index is visible to CaptionAsset
+        # (the warning fires when the caption is built before the index registers)
+        try:
+            video = coll.get_video(video.id)
+        except Exception:
+            pass
+
+        from videodb.editor import (Timeline, Track, Clip as EClip, VideoAsset,
+                                    CaptionAsset, CaptionAnimation)
+        dur = float(getattr(video, "length", 0) or 0)
+
+        cap_kwargs = {"src": "auto"}
+        anim = getattr(CaptionAnimation, animation, None)
+        if anim is not None:
+            cap_kwargs["animation"] = anim
+            cap_kwargs["primary_color"] = primary_color
+            cap_kwargs["secondary_color"] = secondary_color
+
+        tl = Timeline(conn)
+        vt = Track(); ct = Track(z_index=1)
+        vt.add_clip(0, EClip(asset=VideoAsset(id=video.id), duration=dur))
+        ct.add_clip(0, EClip(asset=CaptionAsset(**cap_kwargs), duration=dur))
+        tl.add_track(vt); tl.add_track(ct)
+
+        emit("Captions: rendering final captioned video…")
+        return tl.generate_stream()
+    except Exception as e:
+        logger.warning("auto-captions failed (%s); returning uncaptioned video", e)
+        return clean_stream_url
+
+
+def make_learning_video(storyboard: List[Slide], sandbox=None,
+                        captions: bool = True, transitions: bool = True
+                        ) -> Tuple[str, List[Slide]]:
     """Build a learning video from a storyboard (list of Slide(image_prompt, narration)).
 
-    For each slide: generate image + narration, place on a Timeline where the slide
-    duration equals its narration length. Returns (stream_url, filled_slides).
-    Pass sandbox= to reuse an open session (else opens one for the whole batch).
+    Pass 1: generate image + narration per slide, compose a clean Timeline (images +
+            audio + optional fade transitions).
+    Pass 2 (captions=True): re-ingest the rendered video, index_spoken_words(), and
+            overlay VideoDB's CaptionAsset(src="auto") — clean, auto-synced subtitles.
+    Returns (stream_url, filled_slides). Pass sandbox= to reuse an open session.
     """
     from videodb.editor import Timeline, Track, Clip as EClip, ImageAsset, AudioAsset
 
     conn = vdb.get_conn()
 
-    # own a session if the caller didn't provide one
     own_session = sandbox is None
     session_cm = vdb.open_session(["image_generation", "text_to_speech"]) if own_session \
         else _nullcontext(sandbox)
 
     with session_cm as sb:
-        # 1) generate assets per slide, reusing the ONE sandbox
         for i, sl in enumerate(storyboard):
-            logger.info("slide %d/%d: generating image...", i + 1, len(storyboard))
+            from shared.progress import emit
+            emit(f"Slide {i+1}/{len(storyboard)}: generating image…")
             img_id, img_url = vdb.generate_image(sl.image_prompt, sandbox=sb)
-            logger.info("slide %d/%d: generating narration...", i + 1, len(storyboard))
+            emit(f"Slide {i+1}/{len(storyboard)}: generating narration…")
             aud_id, alen, _aud_url = vdb.generate_voice(sl.narration, sandbox=sb)
             sl.image_id = img_id
             sl.audio_id = aud_id
             sl.image_url = img_url
             sl.duration = max(config.MIN_SLIDE_S, alen - 0.05)
-            logger.info("slide %d ready img=%s dur=%.2fs", i + 1, img_id, sl.duration)
+            emit(f"Slide {i+1}/{len(storyboard)}: ready ({sl.duration:.1f}s)")
 
-    # 2) compose timeline
+    def _transition():
+        if not transitions:
+            return None
+        try:
+            from videodb.editor import Transition
+            return Transition(in_="fade", out="fade", duration=0.4)
+        except Exception as e:
+            logger.warning("transition unavailable: %s", e)
+            return None
+
+    # PASS 1 — clean timeline: images + audio + transitions (NO burned-in captions)
     timeline = Timeline(conn)
     vtrack, atrack = Track(), Track()
     start = 0.0
     for sl in storyboard:
-        vtrack.add_clip(start, EClip(asset=ImageAsset(id=sl.image_id), duration=sl.duration))
+        tr = _transition()
+        if tr is not None:
+            img_clip = EClip(asset=ImageAsset(id=sl.image_id), duration=sl.duration, transition=tr)
+        else:
+            img_clip = EClip(asset=ImageAsset(id=sl.image_id), duration=sl.duration)
+        vtrack.add_clip(start, img_clip)
         atrack.add_clip(start, EClip(asset=AudioAsset(id=sl.audio_id), duration=sl.duration))
         start += sl.duration
     timeline.add_track(vtrack)
     timeline.add_track(atrack)
-
     stream_url = timeline.generate_stream()
+
+    # PASS 2 — auto captions via CaptionAsset (the proper subtitle tool)
+    if captions:
+        stream_url = _add_auto_captions(conn, stream_url)
+
     return stream_url, storyboard
 
 

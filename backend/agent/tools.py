@@ -17,6 +17,7 @@ import logging
 from typing import Any, Dict, Tuple
 
 from shared import retrieval, generate
+from shared.progress import emit
 from shared import videodb_service as vdb
 
 logger = logging.getLogger("revision.agent.tools")
@@ -109,7 +110,10 @@ def execute_tool(name: str, args: Dict[str, Any]) -> Tuple[str, Dict]:
         return (f"Unknown tool: {name}", {"kind": "error", "tool": name})
     try:
         logger.info("tool %s args=%s", name, args)
-        return fn(**args)
+        emit(f"Running: {name}", kind="tool_start", tool=name, args=args)
+        result = fn(**args)
+        emit(f"Finished: {name}", kind="tool_done", tool=name)
+        return result
     except Exception as e:
         logger.exception("tool %s failed", name)
         return (f"Tool {name} failed: {e}", {"kind": "error", "tool": name, "error": str(e)})

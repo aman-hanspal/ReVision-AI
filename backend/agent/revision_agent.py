@@ -30,6 +30,7 @@ from shared import config
 from shared import videodb_service as vdb
 from backend.agent import tools as toolmod
 from backend.agent.prompts import system_prompt
+from shared.progress import emit
 
 logger = logging.getLogger("revision.agent")
 
@@ -51,6 +52,7 @@ def run_agent(user_message: str, video_id: str = "",
     displays: List[Dict] = []
 
     for step in range(config.AGENT_MAX_STEPS):
+        emit("Thinking about what to do next…", kind="thinking")
         resp = client.chat.completions.create(
             model=config.AGENT_MODEL,
             messages=messages,
